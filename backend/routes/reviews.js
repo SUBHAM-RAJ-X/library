@@ -5,6 +5,141 @@ const { validateReview } = require('../middleware/validation');
 
 const router = express.Router();
 
+// Get all reviews for admin dashboard
+router.get('/admin/all', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required'
+      });
+    }
+
+    const { page = 1, limit = 20, query, rating } = req.query;
+    const pageNum = Number.parseInt(page, 10) || 1;
+    const limitNum = Number.parseInt(limit, 10) || 20;
+    const ratingNum = rating ? Number.parseInt(rating, 10) : null;
+    const offset = (pageNum - 1) * limitNum;
+
+    let reviewsQuery = supabase
+      .from('reviews')
+      .select(`
+        *,
+        books!reviews_book_id_fkey (
+          id,
+          title,
+          author
+        ),
+        users!reviews_user_id_fkey (
+          email,
+          role
+        )
+      `, { count: 'exact' });
+
+    if (ratingNum && ratingNum >= 1 && ratingNum <= 5) {
+      reviewsQuery = reviewsQuery.eq('rating', ratingNum);
+    }
+
+    const { data: reviews, error, count } = await reviewsQuery
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limitNum - 1);
+
+    if (error) {
+      console.error('Admin reviews fetch error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: 'Failed to fetch reviews'
+      });
+    }
+
+    const normalizedQuery = query?.trim().toLowerCase();
+    const filteredReviews = normalizedQuery
+      ? (reviews || []).filter((review) => {
+          const haystack = [
+            review.review_text,
+            review.books?.title,
+            review.books?.author,
+            review.users?.email
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(normalizedQuery);
+        })
+      : (reviews || []);
+
+    res.json({
+      reviews: filteredReviews,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: normalizedQuery ? filteredReviews.length : (count || 0),
+        totalPages: Math.max(1, Math.ceil((normalizedQuery ? filteredReviews.length : (count || 0)) / limitNum))
+      }
+    });
+  } catch (error) {
+    console.error('Admin reviews route error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch reviews'
+    });
+  }
+});
+
+// Get review stats for admin dashboard
+router.get('/admin/stats', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Admin access required'
+      });
+    }
+
+    const { data: allReviews, error } = await supabase
+      .from('reviews')
+      .select('id, rating, created_at');
+
+    if (error) {
+      console.error('Admin review stats error:', error);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: 'Failed to fetch review statistics'
+      });
+    }
+
+    const reviews = allReviews || [];
+    const totalReviews = reviews.length;
+    const averageRating = totalReviews > 0
+      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / totalReviews
+      : 0;
+
+    const ratingDistribution = [1, 2, 3, 4, 5].map((value) => ({
+      rating: value,
+      count: reviews.filter((review) => review.rating === value).length
+    }));
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentReviews = reviews.filter((review) => (
+      review.created_at && new Date(review.created_at) >= sevenDaysAgo
+    )).length;
+
+    res.json({
+      total_reviews: totalReviews,
+      average_rating: Number(averageRating.toFixed(2)),
+      rating_distribution: ratingDistribution,
+      recent_reviews_7_days: recentReviews
+    });
+  } catch (error) {
+    console.error('Admin review stats route error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch review statistics'
+    });
+  }
+});
+
 // Get reviews for a book
 router.get('/book/:bookId', async (req, res) => {
   try {
@@ -202,7 +337,7 @@ router.delete('/:reviewId', authenticateToken, async (req, res) => {
       });
     }
 
-    if (review.user_id !== req.user.id) {
+    if (review.user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({
         error: 'Forbidden',
         message: 'You can only delete your own reviews'

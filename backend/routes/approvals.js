@@ -8,7 +8,9 @@ const router = express.Router();
 router.get('/pending', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    const pageNum = Number.parseInt(page, 10) || 1;
+    const limitNum = Number.parseInt(limit, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
 
     const { data: books, error, count } = await supabase
       .from('books')
@@ -21,7 +23,7 @@ router.get('/pending', authenticateToken, requireAdmin, async (req, res) => {
       `, { count: 'exact' })
       .eq('approval_status', 'pending')
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(offset, offset + limitNum - 1);
 
     if (error) {
       console.error('Pending books fetch error:', error);
@@ -34,10 +36,10 @@ router.get('/pending', authenticateToken, requireAdmin, async (req, res) => {
     res.json({
       books,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
+        totalPages: Math.ceil((count || 0) / limitNum)
       }
     });
   } catch (error) {
@@ -191,17 +193,30 @@ router.post('/reject/:bookId', authenticateToken, requireAdmin, async (req, res)
 // Get approval statistics (admin only)
 router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    // Get counts by approval status
-    const { data: statusCounts } = await supabase
+    const { data: statusRows, error: statusError } = await supabase
       .from('books')
-      .select('approval_status')
-      .then(({ data }) => {
-        const counts = data.reduce((acc, book) => {
-          acc[book.approval_status] = (acc[book.approval_status] || 0) + 1;
-          return acc;
-        }, {});
-        return counts;
+      .select('approval_status, created_at');
+
+    if (statusError) {
+      console.error('Approval status stats error:', statusError);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: 'Failed to fetch approval status counts'
       });
+    }
+
+    const statusCounts = (statusRows || []).reduce((acc, book) => {
+      const key = book.approval_status || 'unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const pendingToday = (statusRows || []).filter((book) => {
+      if (book.approval_status !== 'pending' || !book.created_at) return false;
+      return new Date(book.created_at) >= todayStart;
+    }).length;
 
     // Get recent approvals
     const { data: recentApprovals } = await supabase
@@ -229,6 +244,7 @@ router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
     res.json({
       total_pending: pendingCount || 0,
       status_counts: statusCounts || {},
+      pending_today: pendingToday,
       recent_approvals: recentApprovals || []
     });
   } catch (error) {

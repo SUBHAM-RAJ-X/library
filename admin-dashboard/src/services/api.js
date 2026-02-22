@@ -39,6 +39,40 @@ class ApiService {
         return Promise.reject(error);
       }
     );
+
+    // Ensure class methods keep `this` when passed as callbacks (react-query queryFn/mutationFn).
+    [
+      'login',
+      'getProfile',
+      'getBooks',
+      'getBook',
+      'deleteBook',
+      'updateBook',
+      'getUsers',
+      'getUser',
+      'updateUser',
+      'deleteUser',
+      'getUserStats',
+      'getCategories',
+      'createCategory',
+      'updateCategory',
+      'deleteCategory',
+      'getCategoryStats',
+      'getPendingBooks',
+      'getApprovalStats',
+      'approveBook',
+      'rejectBook',
+      'getAllReviews',
+      'getReviewsStats',
+      'deleteReview',
+      'getReadingAnalytics',
+      'getTopReaders',
+      'getPopularBooks',
+      'getMostDownloadedBooks',
+      'getDownloadStats',
+    ].forEach((method) => {
+      this[method] = this[method].bind(this);
+    });
   }
 
   setToken(token) {
@@ -130,6 +164,61 @@ class ApiService {
 
   async getCategoryStats() {
     const response = await this.client.get('/categories/stats/overview');
+    return response.data;
+  }
+
+  // Approval endpoints
+  async getPendingBooks(params = {}) {
+    const response = await this.client.get('/approvals/pending', { params });
+    return response.data;
+  }
+
+  async getApprovalStats() {
+    const response = await this.client.get('/approvals/stats');
+    return response.data;
+  }
+
+  async approveBook(bookId) {
+    const response = await this.client.post(`/approvals/approve/${bookId}`);
+    return response.data;
+  }
+
+  async rejectBook({ bookId, rejectionReason }) {
+    const response = await this.client.post(`/approvals/reject/${bookId}`, {
+      rejection_reason: rejectionReason,
+    });
+    return response.data;
+  }
+
+  // Reviews endpoints
+  async getAllReviews(params = {}) {
+    const response = await this.client.get('/reviews/admin/all', { params });
+    return response.data;
+  }
+
+  async getReviewsStats() {
+    const response = await this.client.get('/reviews/admin/stats');
+    return response.data;
+  }
+
+  async deleteReview(reviewId) {
+    const response = await this.client.delete(`/reviews/${reviewId}`);
+    return response.data;
+  }
+
+  // Reading analytics endpoints
+  async getReadingAnalytics(params = {}) {
+    const response = await this.client.get('/reading-progress/analytics', { params });
+    return response.data;
+  }
+
+  async getTopReaders(params = {}) {
+    const response = await this.client.get('/reading-progress/top-readers', { params });
+    return response.data;
+  }
+
+  async getPopularBooks(params = {}) {
+    const response = await this.client.get('/reading-progress/popular-books', { params });
     return response.data;
   }
 

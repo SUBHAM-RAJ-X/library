@@ -9,11 +9,13 @@ const router = express.Router();
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 10, role } = req.query;
-    const offset = (page - 1) * limit;
+    const pageNum = Number.parseInt(page, 10) || 1;
+    const limitNum = Number.parseInt(limit, 10) || 10;
+    const offset = (pageNum - 1) * limitNum;
 
     let query = supabase
       .from('users')
-      .select('id, email, role, created_at, updated_at', { count: 'exact' });
+      .select('id, email, role, created_at', { count: 'exact' });
 
     if (role) {
       query = query.eq('role', role);
@@ -21,7 +23,7 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
 
     const { data: users, error, count } = await query
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(offset, offset + limitNum - 1);
 
     if (error) {
       console.error('Users fetch error:', error);
@@ -34,10 +36,10 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     res.json({
       users,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
+        totalPages: Math.ceil((count || 0) / limitNum)
       }
     });
   } catch (error) {
@@ -49,6 +51,53 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Get user statistics (admin only)
+router.get('/stats/overview', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { count: totalUsers } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+
+    const { data: roleRows, error: roleRowsError } = await supabase
+      .from('users')
+      .select('role');
+
+    if (roleRowsError) {
+      console.error('User role stats error:', roleRowsError);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: 'Failed to fetch user role statistics'
+      });
+    }
+
+    const roleStats = (roleRows || []).reduce((acc, user) => {
+      const key = user.role || 'unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { count: recentUsers } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    res.json({
+      total_users: totalUsers || 0,
+      users_by_role: roleStats,
+      recent_users_30_days: recentUsers || 0
+    });
+  } catch (error) {
+    console.error('User stats error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch user statistics'
+    });
+  }
+});
+
 // Get user by ID (admin only)
 router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -56,7 +105,7 @@ router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, email, role, created_at, updated_at')
+      .select('id, email, role, created_at')
       .eq('id', id)
       .single();
 
@@ -135,11 +184,10 @@ router.put('/:id', authenticateToken, requireAdmin, validateUserUpdate, async (r
       .from('users')
       .update({
         email: email || existingUser.email,
-        role: role || existingUser.role,
-        updated_at: new Date().toISOString()
+        role: role || existingUser.role
       })
       .eq('id', id)
-      .select('id, email, role, created_at, updated_at')
+      .select('id, email, role, created_at')
       .single();
 
     if (error) {
@@ -256,49 +304,6 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to delete user'
-    });
-  }
-});
-
-// Get user statistics (admin only)
-router.get('/stats/overview', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    // Get total users count
-    const { count: totalUsers } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true });
-
-    // Get users by role
-    const { data: roleStats } = await supabase
-      .from('users')
-      .select('role')
-      .then(({ data }) => {
-        const stats = data.reduce((acc, user) => {
-          acc[user.role] = (acc[user.role] || 0) + 1;
-          return acc;
-        }, {});
-        return stats;
-      });
-
-    // Get recent users (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const { count: recentUsers } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', thirtyDaysAgo.toISOString());
-
-    res.json({
-      total_users: totalUsers || 0,
-      users_by_role: roleStats || {},
-      recent_users_30_days: recentUsers || 0
-    });
-  } catch (error) {
-    console.error('User stats error:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to fetch user statistics'
     });
   }
 });

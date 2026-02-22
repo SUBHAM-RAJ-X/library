@@ -43,7 +43,7 @@ const LoginPage = () => {
     setLoading(false);
 
     if (!result.success) {
-      setError('Invalid email or password');
+      setError(result.error || 'Login failed');
     }
   };
 
@@ -116,18 +116,6 @@ const LoginPage = () => {
                 )}
               </Button>
             </form>
-
-            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Default Admin Account:
-              </Typography>
-              <Typography variant="body2" fontFamily="monospace">
-                Email:subhamrajx@gmail.com
-              </Typography>
-              <Typography variant="body2" fontFamily="monospace">
-                Password:1234567890
-              </Typography>
-            </Box>
           </CardContent>
         </Card>
       </Box>

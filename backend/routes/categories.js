@@ -48,6 +48,54 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get category statistics (admin only)
+router.get('/stats/overview', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { count: totalCategories } = await supabase
+      .from('categories')
+      .select('*', { count: 'exact', head: true });
+
+    const { data: categories, error: categoriesError } = await supabase
+      .from('categories')
+      .select('name');
+
+    if (categoriesError) {
+      console.error('Category stats list error:', categoriesError);
+      return res.status(500).json({
+        error: 'Database Error',
+        message: 'Failed to fetch categories'
+      });
+    }
+
+    const categoriesWithStats = await Promise.all(
+      (categories || []).map(async (category) => {
+        const { count } = await supabase
+          .from('books')
+          .select('*', { count: 'exact', head: true })
+          .eq('category', category.name);
+
+        return {
+          name: category.name,
+          books_count: count || 0
+        };
+      })
+    );
+
+    categoriesWithStats.sort((a, b) => b.books_count - a.books_count);
+
+    res.json({
+      total_categories: totalCategories || 0,
+      categories_by_books: categoriesWithStats
+    });
+  } catch (error) {
+    console.error('Category stats error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to fetch category statistics'
+    });
+  }
+});
+
 // Get single category by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -188,8 +236,7 @@ router.put('/:id', authenticateToken, requireAdmin, validateCategory, async (req
       .from('categories')
       .update({
         name: name || existingCategory.name,
-        description: description !== undefined ? description : existingCategory.description,
-        updated_at: new Date().toISOString()
+        description: description !== undefined ? description : existingCategory.description
       })
       .eq('id', id)
       .select()
@@ -279,49 +326,6 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to delete category'
-    });
-  }
-});
-
-// Get category statistics (admin only)
-router.get('/stats/overview', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    // Get total categories count
-    const { count: totalCategories } = await supabase
-      .from('categories')
-      .select('*', { count: 'exact', head: true });
-
-    // Get categories with book counts
-    const { data: categories } = await supabase
-      .from('categories')
-      .select('name');
-
-    const categoriesWithStats = await Promise.all(
-      categories.map(async (category) => {
-        const { count } = await supabase
-          .from('books')
-          .select('*', { count: 'exact', head: true })
-          .eq('category', category.name);
-
-        return {
-          name: category.name,
-          books_count: count || 0
-        };
-      })
-    );
-
-    // Sort by book count
-    categoriesWithStats.sort((a, b) => b.books_count - a.books_count);
-
-    res.json({
-      total_categories: totalCategories || 0,
-      categories_by_books: categoriesWithStats
-    });
-  } catch (error) {
-    console.error('Category stats error:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to fetch category statistics'
     });
   }
 });

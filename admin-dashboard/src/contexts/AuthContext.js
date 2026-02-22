@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
 import { apiService } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -19,41 +18,6 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkSession();
-    
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          try {
-            const token = session.access_token;
-            apiService.setToken(token);
-            localStorage.setItem('auth_token', token);
-            
-            const { user: profile } = await apiService.getProfile();
-            
-            // Only allow admin users
-            if (profile.role !== 'admin') {
-              toast.error('Access denied. Admin privileges required.');
-              await logout();
-              return;
-            }
-            
-            setUser(profile);
-          } catch (error) {
-            console.error('Error fetching user profile:', error);
-            await logout();
-          }
-        } else {
-          setUser(null);
-          apiService.setToken(null);
-          localStorage.removeItem('auth_token');
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
   }, []);
 
   const checkSession = async () => {
@@ -82,7 +46,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      const { user: profile, token } = await apiService.login(email, password);
+      const normalizedEmail = email.trim().toLowerCase();
+      const { user: profile, token } = await apiService.login(normalizedEmail, password);
       
       if (profile.role !== 'admin') {
         toast.error('Access denied. Admin privileges required.');
@@ -97,8 +62,12 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(error.message || 'Login failed');
-      return { success: false };
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Login failed';
+      toast.error(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -106,7 +75,6 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
       localStorage.removeItem('auth_token');
       apiService.setToken(null);
       setUser(null);

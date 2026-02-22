@@ -223,7 +223,7 @@ router.get('/stats/:book_id', authenticateToken, async (req, res) => {
     // Get download statistics
     const { data: stats, error: statsError } = await supabase
       .from('downloads')
-      .select('downloaded_at')
+      .select('downloaded_at, user_id')
       .eq('book_id', book_id);
 
     if (statsError) {

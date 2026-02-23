@@ -1,0 +1,103 @@
+import React, { useState } from "react"
+import { Link } from "react-router-dom"
+
+const Register = () => {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  return (
+    <div className="w-full max-w-6xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center px-4">
+      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-xl overflow-hidden">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center px-10 py-5 border-b">
+          <h1 className="text-xl font-semibold">
+            {/* <span className="text-orange-400">Libra</span> */}
+            <span className="text-gray-800">Library</span>
+          </h1>
+          <Link
+            to="/login"
+            className="bg-green-900 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-green-800"
+          >
+            Sign In
+          </Link>
+        </div>
+
+        {/* Body */}
+        <div className="grid grid-cols-1 md:grid-cols-2 bg-[#f5f2e6] p-12">
+          
+          {/* Form */}
+          <div>
+            <h2 className="text-3xl font-semibold mb-6 text-gray-900">
+              Register
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-3 rounded-md border focus:outline-none focus:ring-2 focus:ring-green-900"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-3 rounded-md border focus:outline-none focus:ring-2 focus:ring-green-900"
+                  placeholder="Create a password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-3 rounded-md border focus:outline-none focus:ring-2 focus:ring-green-900"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+
+              <button className="w-full bg-green-900 text-white py-3 rounded-md font-medium hover:bg-green-800 transition">
+                Create Account
+              </button>
+
+              <p className="text-sm text-gray-600">
+                Already have an account?{" "}
+                <Link to="/login" className="text-green-900 font-medium">
+                  Log in
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          {/* Illustration */}
+          <div className="hidden md:flex items-center justify-center">
+            <img
+              src="/images/login-illustration.png"
+              alt="Books Illustration"
+              className="max-w-sm"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default Register

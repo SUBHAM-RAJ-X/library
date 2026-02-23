@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../config/supabaseClient'
+import DashboardLayout from "../components/DashboardLayout"
 
 interface Book {
   id: string
@@ -66,26 +67,36 @@ const Books: React.FC = () => {
   const racks = ['A', 'B', 'C', 'D', 'E', 'F']
 
   return (
+  <DashboardLayout>
     <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Browse Books</h1>
+
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">
+        Discover Books
+      </h1>
 
       {/* Filters */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search
+            </label>
             <input
               type="text"
               placeholder="Search by title..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category
+            </label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -97,10 +108,13 @@ const Books: React.FC = () => {
               ))}
             </select>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rack</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Rack
+            </label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               value={selectedRack}
               onChange={(e) => setSelectedRack(e.target.value)}
             >
@@ -112,6 +126,7 @@ const Books: React.FC = () => {
               ))}
             </select>
           </div>
+
           <div className="flex items-end">
             <button
               onClick={() => {
@@ -125,6 +140,7 @@ const Books: React.FC = () => {
               Clear Filters
             </button>
           </div>
+
         </div>
       </div>
 
@@ -142,50 +158,60 @@ const Books: React.FC = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {books.map((book) => (
-              <div key={book.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+              <div
+  key={book.id}
+  className="bg-white rounded-xl shadow-card hover:-translate-y-1 transition transform"
+>
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="inline-block px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded">
+                  {/* Book Cover Placeholder */}
+                  <div className="h-40 bg-gradient-to-br from-blue-100 to-blue-300 rounded-md mb-4 flex items-center justify-center text-xl font-bold text-blue-700">
+                    {book.title.charAt(0)}
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                       Rack {book.rack_letter}
                     </span>
                     <span className="text-sm text-gray-500">
-                      ⭐ {book.average_rating?.toFixed(1) || '0.0'}
+                      ⭐ {book.average_rating?.toFixed(1) || "0.0"}
                     </span>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">{book.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">by {book.author}</p>
-                  <p className="text-sm text-gray-500 mb-4 line-clamp-3">{book.description}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">{book.category}</span>
-                    <Link
-                      to={`/books/${book.id}`}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
+
+                  <h3 className="font-semibold line-clamp-2">
+                    {book.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-3">
+                    by {book.author}
+                  </p>
+
+                  <Link
+                    to={`/books/${book.id}`}
+                    className="text-blue-600 text-sm font-medium"
+                  >
+                    View Details →
+                  </Link>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center mt-8 space-x-2">
+            <div className="flex justify-center mt-8 gap-3">
               <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border rounded disabled:opacity-50"
               >
                 Previous
               </button>
-              <span className="px-4 py-2 text-gray-700">
+
+              <span className="px-4 py-2">
                 Page {currentPage} of {totalPages}
               </span>
+
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border rounded disabled:opacity-50"
               >
                 Next
               </button>
@@ -193,8 +219,10 @@ const Books: React.FC = () => {
           )}
         </>
       )}
+
     </div>
-  )
+  </DashboardLayout>
+)
 }
 
 export default Books

@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom'
 
 const Home: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="bg-gradient-to-b from-orange-50 to-pink-50 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 min-h-full">
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
-            Welcome to the Library System
+            Welcome to the Library 
           </h1>
           <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
             Discover, read, and manage your favorite books all in one place.
@@ -43,10 +43,10 @@ const Home: React.FC = () => {
                     </svg>
                   </div>
                   <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight">
-                    Extensive Collection
+                    You And Your Friends Collection
                   </h3>
                   <p className="mt-5 text-base text-gray-500">
-                    Access thousands of books across various categories and genres.
+                    Access thousands of books across various categories and genres uploaded by YOU.
                   </p>
                 </div>
               </div>

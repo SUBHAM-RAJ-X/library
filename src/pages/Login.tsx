@@ -14,89 +14,86 @@ const Login: React.FC = () => {
     setLoading(true)
     setError('')
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-      if (error) throw error
-      navigate('/')
-    } catch (error: any) {
-      setError(error.message)
-    } finally {
-      setLoading(false)
-    }
+    if (error) setError(error.message)
+    else navigate('/')
+
+    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link
-              to="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              create a new account
-            </Link>
-          </p>
+    <div className="w-full max-w-5xl bg-[#F5F1E6] rounded-3xl shadow-2xl flex overflow-hidden">
+
+      {/* LEFT */}
+      <div className="w-full md:w-1/2 p-12">
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-xl font-semibold">
+            <span className="text-orange-500">Library</span>
+          </h1>
+          <Link
+            to="/register"
+            className="px-4 py-2 bg-[#2F3E2E] text-white rounded-md text-sm"
+          >
+            Sign Up
+          </Link>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+
+        <h2 className="text-3xl font-semibold mb-8">Log in</h2>
+
+        {error && (
+          <div className="mb-4 bg-red-100 text-red-700 px-4 py-2 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label className="text-sm">Username or Email</label>
+            <input
+              type="email"
+              required
+              className="w-full mt-1 px-4 py-3 rounded-md border"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
+            <label className="text-sm">Password</label>
+            <input
+              type="password"
+              required
+              className="w-full mt-1 px-4 py-3 rounded-md border"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#2F3E2E] text-white py-3 rounded-md"
+          >
+            {loading ? 'Logging in...' : 'Log In'}
+          </button>
+
+          <div className="text-center text-sm mt-2">
+            <Link to="/forgot-password">Forgot Password?</Link>
           </div>
         </form>
+      </div>
+
+      {/* RIGHT */}
+      <div className="hidden md:flex w-1/2 items-center justify-center">
+        <img
+          src="/images/login-books.png"
+          alt="Books"
+          className="max-w-sm"
+        />
       </div>
     </div>
   )

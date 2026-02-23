@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../config/supabaseClient'
 import { api, API_ENDPOINTS } from '../services/apiService'
@@ -26,11 +26,7 @@ const Books: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
 
-  useEffect(() => {
-    fetchBooks()
-  }, [searchQuery, selectedCategory, selectedRack, currentPage])
-
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     setLoading(true)
     try {
       // Build query parameters
@@ -81,7 +77,11 @@ const Books: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, searchQuery, selectedCategory, selectedRack])
+
+  useEffect(() => {
+    fetchBooks()
+  }, [fetchBooks])
 
   const categories = ['Fiction', 'Non-Fiction', 'Science', 'Technology', 'History', 'Biography']
   const racks = ['A', 'B', 'C', 'D', 'E', 'F']

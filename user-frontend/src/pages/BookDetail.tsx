@@ -39,18 +39,54 @@ const BookDetail: React.FC = () => {
 
   useEffect(() => {
     if (id) {
+      const checkUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user)
+      }
+
+      const fetchBook = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('books')
+            .select('*')
+            .eq('id', id)
+            .single()
+
+          if (error) throw error
+          setBook(data)
+        } catch (error) {
+          console.error('Error fetching book:', error)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      const fetchReviews = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('reviews')
+            .select(`
+              *,
+              users (email)
+            `)
+            .eq('book_id', id)
+            .order('created_at', { ascending: false })
+
+          if (error) throw error
+          setReviews(data || [])
+        } catch (error) {
+          console.error('Error fetching reviews:', error)
+        }
+      }
+
       fetchBook()
       fetchReviews()
       checkUser()
     }
   }, [id])
 
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    setUser(session?.user)
-  }
-
-  const fetchBook = async () => {
+  // Separate functions for refresh operations
+  const refreshBookData = async () => {
     try {
       const { data, error } = await supabase
         .from('books')
@@ -61,13 +97,11 @@ const BookDetail: React.FC = () => {
       if (error) throw error
       setBook(data)
     } catch (error) {
-      console.error('Error fetching book:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error refreshing book:', error)
     }
   }
 
-  const fetchReviews = async () => {
+  const refreshReviews = async () => {
     try {
       const { data, error } = await supabase
         .from('reviews')
@@ -81,7 +115,7 @@ const BookDetail: React.FC = () => {
       if (error) throw error
       setReviews(data || [])
     } catch (error) {
-      console.error('Error fetching reviews:', error)
+      console.error('Error refreshing reviews:', error)
     }
   }
 
@@ -129,8 +163,8 @@ const BookDetail: React.FC = () => {
       if (error) throw error
 
       setNewReview({ rating: 5, review_text: '' })
-      fetchReviews()
-      fetchBook() // Refresh to update average rating
+      refreshReviews()
+      refreshBookData() // Refresh to update average rating
     } catch (error) {
       console.error('Error submitting review:', error)
     }

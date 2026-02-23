@@ -1,10 +1,61 @@
 import React, { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { supabase } from '../config/supabaseClient'
+import { api, API_ENDPOINTS } from '../services/apiService'
 
 const Register = () => {
+  const navigate = useNavigate()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Try to register with backend API first
+      const response = await api.post(API_ENDPOINTS.REGISTER, {
+        email,
+        password,
+      })
+      
+      const data = await response.json()
+      
+      // Store auth token if provided
+      if (data.token) {
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
+      
+      navigate('/')
+    } catch (apiError) {
+      console.error('API registration failed, trying Supabase:', apiError)
+      
+      // Fallback to Supabase authentication
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+
+      if (error) {
+        setError(error.message)
+      } else {
+        navigate('/')
+      }
+    }
+
+    setLoading(false)
+  }
 
   return (
     <div className="w-full max-w-6xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center px-4">
@@ -33,7 +84,13 @@ const Register = () => {
               Register
             </h2>
 
-            <div className="space-y-4">
+            {error && (
+              <div className="mb-4 bg-red-100 text-red-700 px-4 py-2 rounded">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleRegister} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Email
@@ -73,8 +130,12 @@ const Register = () => {
                 />
               </div>
 
-              <button className="w-full bg-green-900 text-white py-3 rounded-md font-medium hover:bg-green-800 transition">
-                Create Account
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-900 text-white py-3 rounded-md font-medium hover:bg-green-800 transition disabled:opacity-50"
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
               </button>
 
               <p className="text-sm text-gray-600">
@@ -83,7 +144,7 @@ const Register = () => {
                   Log in
                 </Link>
               </p>
-            </div>
+            </form>
           </div>
 
           {/* Illustration */}

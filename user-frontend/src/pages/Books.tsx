@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../config/supabaseClient'
+import { api, API_ENDPOINTS } from '../services/apiService'
 import DashboardLayout from "../components/DashboardLayout"
 
 interface Book {
@@ -32,32 +33,51 @@ const Books: React.FC = () => {
   const fetchBooks = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from('books')
-        .select('*', { count: 'exact' })
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false })
-        .range((currentPage - 1) * 12, currentPage * 12 - 1)
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '12',
+        ...(searchQuery && { search: searchQuery }),
+        ...(selectedCategory && { category: selectedCategory }),
+        ...(selectedRack && { rack: selectedRack }),
+      })
 
-      if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`)
-      }
-
-      if (selectedCategory) {
-        query = query.eq('category', selectedCategory)
-      }
-
-      if (selectedRack) {
-        query = query.eq('rack_letter', selectedRack)
-      }
-
-      const { data, error, count } = await query
-
-      if (error) throw error
-      setBooks(data || [])
-      setTotalPages(Math.ceil((count || 0) / 12))
+      const response = await api.get(`${API_ENDPOINTS.BOOKS}?${params}`)
+      const data = await response.json()
+      
+      setBooks(data.books || [])
+      setTotalPages(Math.ceil((data.total || 0) / 12))
     } catch (error) {
       console.error('Error fetching books:', error)
+      // Fallback to Supabase if API fails
+      try {
+        let query = supabase
+          .from('books')
+          .select('*', { count: 'exact' })
+          .eq('is_approved', true)
+          .order('created_at', { ascending: false })
+          .range((currentPage - 1) * 12, currentPage * 12 - 1)
+
+        if (searchQuery) {
+          query = query.ilike('title', `%${searchQuery}%`)
+        }
+
+        if (selectedCategory) {
+          query = query.eq('category', selectedCategory)
+        }
+
+        if (selectedRack) {
+          query = query.eq('rack_letter', selectedRack)
+        }
+
+        const { data, error, count } = await query
+
+        if (error) throw error
+        setBooks(data || [])
+        setTotalPages(Math.ceil((count || 0) / 12))
+      } catch (supabaseError) {
+        console.error('Supabase fallback also failed:', supabaseError)
+      }
     } finally {
       setLoading(false)
     }

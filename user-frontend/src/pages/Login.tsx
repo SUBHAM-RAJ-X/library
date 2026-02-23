@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabaseClient'
+import { api, API_ENDPOINTS } from '../services/apiService'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -14,13 +15,37 @@ const Login: React.FC = () => {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // Try to login with backend API first
+      const response = await api.post(API_ENDPOINTS.LOGIN, {
+        email,
+        password,
+      })
+      
+      const data = await response.json()
+      
+      // Store auth token
+      if (data.token) {
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
+      
+      navigate('/')
+    } catch (apiError) {
+      console.error('API login failed, trying Supabase:', apiError)
+      
+      // Fallback to Supabase authentication
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) setError(error.message)
-    else navigate('/')
+      if (error) {
+        setError(error.message)
+      } else {
+        navigate('/')
+      }
+    }
 
     setLoading(false)
   }
